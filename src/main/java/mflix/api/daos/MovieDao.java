@@ -20,7 +20,7 @@ public class MovieDao extends AbstractMFlixDao {
 
     public static String MOVIES_COLLECTION = "movies";
 
-    private MongoCollection<Document> moviesCollection;
+    private final MongoCollection<Document> moviesCollection;
 
     @Autowired
     public MovieDao(MongoClient mongoClient, @Value("${spring.mongodb.database}") String databaseName) {
@@ -31,7 +31,6 @@ public class MovieDao extends AbstractMFlixDao {
     @SuppressWarnings("unchecked")
     private Bson buildLookupStage() {
         return null;
-
     }
 
     /**
@@ -141,6 +140,7 @@ public class MovieDao extends AbstractMFlixDao {
         Bson textFilter = Filters.text(keywords);
         Bson projection = Projections.metaTextScore("score");
         Bson sort = Sorts.metaTextScore("score");
+
         List<Document> movies = new ArrayList<>();
         moviesCollection
                 .find(textFilter)
@@ -150,6 +150,7 @@ public class MovieDao extends AbstractMFlixDao {
                 .limit(limit)
                 .iterator()
                 .forEachRemaining(movies::add);
+
         return movies;
     }
 
@@ -164,10 +165,9 @@ public class MovieDao extends AbstractMFlixDao {
      * @return List of documents sorted by sortKey that match the cast selector.
      */
     public List<Document> getMoviesByCast(String sortKey, int limit, int skip, String... cast) {
-        Bson castFilter = null;
-        Bson sort = null;
-        //TODO> Ticket: Subfield Text Search - implement the expected cast
-        // filter and sort
+        Bson castFilter = Filters.in("cast", cast);
+        Bson sort = Sorts.descending(sortKey);
+
         List<Document> movies = new ArrayList<>();
         moviesCollection
                 .find(castFilter)
@@ -176,6 +176,7 @@ public class MovieDao extends AbstractMFlixDao {
                 .skip(skip)
                 .iterator()
                 .forEachRemaining(movies::add);
+
         return movies;
     }
 
