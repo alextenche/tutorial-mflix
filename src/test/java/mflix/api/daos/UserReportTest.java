@@ -22,36 +22,37 @@ import java.util.List;
 @RunWith(SpringJUnit4ClassRunner.class)
 public class UserReportTest extends TicketTest {
 
-  private CommentDao dao;
-  @Autowired MongoClient mongoClient;
+    private CommentDao dao;
+    @Autowired
+    MongoClient mongoClient;
 
-  @Value("${spring.mongodb.database}")
-  String databaseName;
+    @Value("${spring.mongodb.database}")
+    String databaseName;
 
-  @Before
-  public void setUp() {
-    this.dao = new CommentDao(mongoClient, databaseName);
-  }
+    @Before
+    public void setUp() {
+        this.dao = new CommentDao(mongoClient, databaseName);
+    }
 
-  @Test
-  public void testMostActiveUserComments() {
-    String mostActiveCommenter = "roger_ashton-griffiths@gameofthron.es";
-    List<Critic> mostActive = this.dao.mostActiveCommenters();
-    int expectedListSize = 20;
-    Assert.assertEquals(
-        "mostActiveComments() should return 20 results",
-        expectedListSize,
-        mostActive.size());
+    @Test
+    public void testMostActiveUserComments() {
+        String mostActiveCommenter = "roger_ashton-griffiths@gameofthron.es";
+        List<Critic> mostActive = this.dao.mostActiveCommenters();
+        int expectedListSize = 20;
+        Assert.assertEquals(
+                "mostActiveComments() should return 20 results",
+                expectedListSize,
+                mostActive.size());
 
-    Assert.assertEquals(
-        "The top comments user email does not match. Check your mostActiveCommenters() method",
-        mostActiveCommenter,
-        mostActive.get(0).getId());
+        Assert.assertEquals(
+                "The top comments user email does not match. Check your mostActiveCommenters() method",
+                mostActiveCommenter,
+                mostActive.get(0).getId());
 
-    int expectedNumComments = 331;
-    Assert.assertEquals(
-        "The top comments count does not match.",
-        expectedNumComments,
-        mostActive.get(0).getNumComments());
-  }
+        int expectedNumComments = 331;
+        Assert.assertEquals(
+                "The top comments count does not match.",
+                expectedNumComments,
+                mostActive.get(0).getNumComments());
+    }
 }

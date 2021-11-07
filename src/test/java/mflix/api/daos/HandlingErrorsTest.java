@@ -21,42 +21,43 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @RunWith(SpringJUnit4ClassRunner.class)
 public class HandlingErrorsTest extends TicketTest {
 
-  private MovieDao mDao;
-  private User testUser;
-  private UserDao uDao;
-  @Autowired MongoClient mongoClient;
+    private MovieDao mDao;
+    private User testUser;
+    private UserDao uDao;
+    @Autowired
+    MongoClient mongoClient;
 
-  @Value("${spring.mongodb.database}")
-  String databaseName;
+    @Value("${spring.mongodb.database}")
+    String databaseName;
 
-  @Before
-  public void setup() {
-    this.mDao = new MovieDao(mongoClient, databaseName);
-    this.uDao = new UserDao(mongoClient, databaseName);
-    this.testUser = new User();
-    this.testUser.setName("Hermione Granger");
-    this.testUser.setHashedpw("somehashedpw");
-  }
+    @Before
+    public void setup() {
+        this.mDao = new MovieDao(mongoClient, databaseName);
+        this.uDao = new UserDao(mongoClient, databaseName);
+        this.testUser = new User();
+        this.testUser.setName("Hermione Granger");
+        this.testUser.setHashedpw("somehashedpw");
+    }
 
-  @Test
-  public void testAccessExistingDocument() {
-    String validId = "573a1394f29313caabce0899";
-    Document movie = mDao.getMovie(validId);
-    Assert.assertEquals(movie.getObjectId("_id").toHexString(), validId);
-  }
+    @Test
+    public void testAccessExistingDocument() {
+        String validId = "573a1394f29313caabce0899";
+        Document movie = mDao.getMovie(validId);
+        Assert.assertEquals(movie.getObjectId("_id").toHexString(), validId);
+    }
 
-  @Test
-  public void testAccessInvalidIdDocument() {
-    String notValidId = "573a1394f29313caabce9999";
-    Document movie = mDao.getMovie(notValidId);
-    Assert.assertNull(movie);
-  }
+    @Test
+    public void testAccessInvalidIdDocument() {
+        String notValidId = "573a1394f29313caabce9999";
+        Document movie = mDao.getMovie(notValidId);
+        Assert.assertNull(movie);
+    }
 
-  @Test(expected = IncorrectDaoOperation.class)
-  public void testNoUserDups() {
-    // creates the user for the first time
-    uDao.addUser(testUser);
-    // checks if user was able to be created again
-    uDao.addUser(testUser);
-  }
+    @Test(expected = IncorrectDaoOperation.class)
+    public void testNoUserDups() {
+        // creates the user for the first time
+        uDao.addUser(testUser);
+        // checks if user was able to be created again
+        uDao.addUser(testUser);
+    }
 }
