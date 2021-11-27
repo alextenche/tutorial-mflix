@@ -10,10 +10,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
+
+import static com.mongodb.client.model.Filters.eq;
 
 @Component
 public class MovieDao extends AbstractMFlixDao {
@@ -34,7 +33,7 @@ public class MovieDao extends AbstractMFlixDao {
     }
 
     /**
-     * movieId needs to be a hexadecimal string value. Otherwise it won't be possible to translate to
+     * movieId needs to be a hexadecimal string value, otherwise it won't be possible to translate to
      * an ObjectID
      *
      * @param movieId - Movie object identifier
@@ -59,12 +58,21 @@ public class MovieDao extends AbstractMFlixDao {
             return null;
         }
 
+        Bson matchStage = Aggregates.match(eq("_id", new ObjectId(movieId)));
+        Bson getCommentsForEachMovieStage = Aggregates.lookup(
+                "comments",
+                Collections.singletonList(new Variable<>("id", "$_id")),
+                Arrays.asList(new Document("$match",
+                                new Document("$expr",
+                                        new Document("$eq", Arrays.asList("$movie_id", "$$id")))),
+                        new Document("$sort",
+                                new Document("date", -1L))),
+
+                "comments");
+
         List<Bson> pipeline = new ArrayList<>();
-        // match stage to find movie
-        Bson match = Aggregates.match(Filters.eq("_id", new ObjectId(movieId)));
-        pipeline.add(match);
-        // TODO> Ticket: Get Comments - implement the lookup stage that allows the comments to
-        // retrieved with Movies.
+        pipeline.add(matchStage);
+        pipeline.add(getCommentsForEachMovieStage);
         Document movie = moviesCollection.aggregate(pipeline).first();
 
         return movie;
@@ -181,7 +189,7 @@ public class MovieDao extends AbstractMFlixDao {
     }
 
     /**
-     * Finds all movies that match the provide `genres`, sorted descending by the `sortKey` field.
+     * Finds all movies that match the provided `genres`, sorted descending by the `sortKey` field.
      *
      * @param sortKey - sorting key string.
      * @param limit   - number of documents to be returned.
@@ -190,15 +198,18 @@ public class MovieDao extends AbstractMFlixDao {
      * @return List of matching Document objects.
      */
     public List<Document> getMoviesByGenre(String sortKey, int limit, int skip, String... genres) {
-        // query filter
-        Bson castFilter = Filters.in("genres", genres);
-        // sort key
+        Bson genresFilter = Filters.in("genres", genres);
         Bson sort = Sorts.descending(sortKey);
+
         List<Document> movies = new ArrayList<>();
-        // TODO > Ticket: Paging - implement the necessary cursor methods to support simple
-        // pagination like skip and limit in the code below
-        moviesCollection.find(castFilter).sort(sort).iterator()
+        moviesCollection
+                .find(genresFilter)
+                .sort(sort)
+                .limit(limit)
+                .skip(skip)
+                .iterator()
                 .forEachRemaining(movies::add);
+
         return movies;
     }
 
@@ -271,14 +282,14 @@ public class MovieDao extends AbstractMFlixDao {
         Bson sortStage = Aggregates.sort(Sorts.descending(sortKey));
         Bson limitStage = Aggregates.limit(limit);
         Bson facetStage = buildFacetStage();
+
         // Using a LinkedList to ensure insertion order
         List<Bson> pipeline = new LinkedList<>();
-
-        // TODO > Ticket: Faceted Search - build the aggregation pipeline by adding all stages in the
-        // correct order
-        // Your job is to order the stages correctly in the pipeline.
-        // Starting with the `matchStage` add the remaining stages.
         pipeline.add(matchStage);
+        pipeline.add(sortStage);
+        pipeline.add(skipStage);
+        pipeline.add(limitStage);
+        pipeline.add(facetStage);
 
         moviesCollection.aggregate(pipeline).iterator().forEachRemaining(movies::add);
         return movies;
